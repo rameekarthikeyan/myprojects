@@ -28,24 +28,31 @@ cv$row_id <- testdata1$row_id
 setkeyv(cv, "accuracy")
 ll <- length(accuracylist)
 pp <- NULL
-for (i in 51:60)
-{
-ft <- traindat[.(accuracylist[i])]
-nr <- nrow(ft)
-ct <- cv[.(accuracylist[i])]
-if (nr < 5) {
-  k1 <- i
-} else {
-  k1 <- 5
+accuracylist <- as.list(accuracylist)
+listfn <- function(z) {
+ ft <- traindat[.(z)] 
+ nr <- nrow(ft)
+ ct <- cv[.(z)]
+ if (nr < 5) {
+   k1 <- nr
+ } else {
+   k1 <- 5
+ }
+ if (is.na(ct[1]$x)) {
+   knn.test <- traindat$place_id[1]
+    } else {
+    # Running K- nearest neighbors to the training set 
+   knn.test <- knn(ft[, c(1:2), with = FALSE], ct[, c(1:2), with = FALSE], ft[, place_id], k = k1)
+ }
+ ct$predictedplace_id <- knn.test
+ return(ct)
 }
-if (is.na(ct[1]$x)) {
-  knn.test <- traindat$place_id[1]
-  pp[i] <- 0
-} else {
-# Running K nearest neighbors to training set with cross validation set as test set
-knn.test <- knn(ft[, c(1:2), with = FALSE], ct[, c(1:2), with = FALSE], ft[, place_id], k = k1)
-}
-ct$predictedplace_id <- knn.test
-filenm <- paste("myprediction_", i, ".csv", sep="")
-write.csv(ct, filenm)
-}
+nt <- lapply(accuracylist, listfn)
+tryy <- rbindlist(nt)
+nerr <- na.omit(tryy)
+wrrr <- nerr[, c("row_id", "predictedplace_id"), with = FALSE]
+setkeyv(wrrr, "row_id")
+colnames(wrrr) <- c("row_id", "place_id")
+filenm <- "oneprediction.csv"
+write.csv(wrrr, filenm, row.names = FALSE)
+#}
